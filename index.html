@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bradley JJK Bingo</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    text-align:center;
+    background:#121212;
+    color:white;
+}
+
+h1{
+    margin-top:30px;
+}
+
+.board{
+    display:grid;
+    grid-template-columns:repeat(5,110px);
+    grid-template-rows:repeat(5,110px);
+    gap:8px;
+    justify-content:center;
+    margin-top:40px;
+}
+
+.square{
+    position:relative;
+    background:#1f1f1f;
+    border:2px solid #444;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-size:12px;
+    padding:6px;
+    cursor:pointer;
+    overflow:hidden;
+}
+
+.square:hover{
+    background:#2a2a2a;
+}
+
+.cross{
+    position:absolute;
+    width:95%;
+    height:95%;
+    display:none;
+}
+
+.cross::before,
+.cross::after{
+    content:"";
+    position:absolute;
+    top:50%;
+    left:50%;
+    width:100%;
+    height:8px;
+    background:white;
+    opacity:0.35;
+    transform-origin:center;
+}
+
+.cross::before{
+    transform:translate(-50%, -50%) rotate(45deg);
+}
+
+.cross::after{
+    transform:translate(-50%, -50%) rotate(-45deg);
+}
+
+.square.marked .cross{
+    display:block;
+}
+
+.zoom{
+    position:absolute;
+    top:6px;
+    right:6px;
+    font-size:14px;
+    opacity:0.35;
+    cursor:pointer;
+}
+
+.zoom:hover{
+    opacity:0.8;
+}
+
+.frown{
+    position:absolute;
+    bottom:6px;
+    left:6px;
+    font-size:14px;
+    opacity:0.35;
+    cursor:pointer;
+}
+
+.frown:hover{
+    opacity:0.9;
+}
+
+.back{
+    position:absolute;
+    bottom:6px;
+    left:6px;
+    font-size:14px;
+    opacity:0.5;
+    cursor:pointer;
+    display:none;
+}
+
+.square.flipped span{
+    display:none;
+}
+
+.square.flipped::after{
+    content:"🖕";
+    font-size:40px;
+}
+
+.square.flipped .back{
+    display:block;
+}
+
+.popup{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.85);
+    display:none;
+    align-items:center;
+    justify-content:center;
+}
+
+.popupContent{
+    background:#1e1e1e;
+    padding:90px 140px;
+    font-size:40px;
+    border-radius:14px;
+    border:2px solid #444;
+    position:relative;
+    max-width:600px;
+}
+
+.close{
+    position:absolute;
+    top:10px;
+    right:18px;
+    font-size:22px;
+    cursor:pointer;
+    opacity:.6;
+}
+
+.close:hover{
+    opacity:1;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Bradley JJK Bingo</h1>
+
+<div class="board" id="board"></div>
+
+<div class="popup" id="popup">
+<div class="popupContent">
+<span class="close" onclick="closePopup()">✕</span>
+<div id="popupText"></div>
+</div>
+</div>
+
+<script>
+
+const board = document.getElementById("board");
+
+const bingoItems = [
+"There's gonna be a plane and helicopter technique people",
+"Kirara dies",
+"Culling game rule: spend points to move colonies",
+"Tsumiki dies",
+"Higarooma's technique is something to do with light/energy and being able to control it",
+"Takaba's technique is heavily luck based",
+"Anal bead head has a constellation technique tied to Kirara",
+"Part of Hakari's technique makes him stronger when hes more passionate about the fight",
+"Yuta and Maki team up and slime a tiger",
+"Takaba gets a random clutch",
+"There's gonna be some sort of eclipse",
+"The gang of 4 in the trailer try to hinder Yuji and the gang",
+"Kenjaku cylinders the map to reach Tengen",
+"Yuta's domain: mirrors the opponents domain, receiving their domain buff",
+"Season ends teasing Gojo vs Sukuna",
+"Ryu bombs Tokyo to cause fear to strenghten curse spirits",
+"Choso lends his power to people somehow",
+"Kashimo has lightning powers",
+"'Higher ups' get smiled out by Yuta",
+"Culling game rule: players can spend points to 1v1 a clone of themselves, if they win they can exit the game and their clone continues playing until all particapting players are dead",
+"Rika gets mad at Yuta and betrays/leaves him",
+"Yuji accidentally slimes people with Sukuna's technique",
+"Higarooma becomes a Kenjaku accomplice",
+"Yuji obtains sukuna's technique",
+"Yuji learns a new Black Flash type punch"
+];
+
+let savedState = JSON.parse(localStorage.getItem("bingoState")) || [];
+
+function saveBoard(){
+    const state = [];
+    document.querySelectorAll(".square").forEach(square=>{
+        state.push({
+            marked:square.classList.contains("marked"),
+            flipped:square.classList.contains("flipped")
+        });
+    });
+    localStorage.setItem("bingoState",JSON.stringify(state));
+}
+
+for(let i=0;i<25;i++){
+
+const square=document.createElement("div");
+square.className="square";
+
+let text=bingoItems[i];
+
+const label=document.createElement("span");
+label.textContent=text;
+
+const cross=document.createElement("div");
+cross.className="cross";
+
+const zoom=document.createElement("span");
+zoom.className="zoom";
+zoom.textContent="🔍";
+
+zoom.onclick=(event)=>{
+event.stopPropagation();
+openPopup(text);
+};
+
+const frown=document.createElement("span");
+frown.className="frown";
+frown.textContent="☹";
+
+frown.onclick=(event)=>{
+event.stopPropagation();
+square.classList.add("flipped");
+saveBoard();
+};
+
+const back=document.createElement("span");
+back.className="back";
+back.textContent="↩";
+
+back.onclick=(event)=>{
+event.stopPropagation();
+square.classList.remove("flipped");
+saveBoard();
+};
+
+square.onclick=()=>{
+square.classList.toggle("marked");
+saveBoard();
+};
+
+if(savedState[i]){
+if(savedState[i].marked) square.classList.add("marked");
+if(savedState[i].flipped) square.classList.add("flipped");
+}
+
+square.appendChild(label);
+square.appendChild(cross);
+square.appendChild(zoom);
+square.appendChild(frown);
+square.appendChild(back);
+
+board.appendChild(square);
+
+}
+
+function openPopup(text){
+document.getElementById("popupText").textContent=text;
+document.getElementById("popup").style.display="flex";
+}
+
+function closePopup(){
+document.getElementById("popup").style.display="none";
+}
+
+document.getElementById("popup").onclick=function(e){
+if(e.target===this){
+closePopup();
+}
+};
+
+</script>
+
+</body>
+</html>
